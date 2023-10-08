@@ -5,25 +5,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.util.Calendar;
-
 @Entity
-@Table(name = "expenses")
-@Data
+@Table(name = "expense_categories")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Expense {
+@Data
+public class ExpenseCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double amount;
-    private LocalDate date;
+    private String name;
 
     @ManyToOne
     private User user;
-
-    @ManyToOne
-    private ExpenseCategory category;
 }

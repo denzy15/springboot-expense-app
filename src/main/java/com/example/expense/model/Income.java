@@ -19,6 +19,7 @@ public class Income {
 
     private Double amount;
     private LocalDate date;
+    private String description;
 
     @ManyToOne
     private User user;

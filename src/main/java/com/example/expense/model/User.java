@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Data
 @Table(name = "users")
-public class User {
+public class User  {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface IncomeCategoryRepository extends JpaRepository<IncomeCategory, Long> {
     List<IncomeCategory> findByUserId(Long userId);
-    IncomeCategory findByNameAndUserId(String name, Long userId);
+
 
 
 }

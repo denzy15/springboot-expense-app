@@ -21,13 +21,11 @@ public class JwtTokenUtils {
     @Value("${jwt.lifetime}")
     private Duration jwtLifetime;
 
-    public String generateToken(UserDetails userDetails){
-        Map<String, Object> claims = new HashMap<>();
-//        claims.put(userDetails.getUsername());
+    public String generateToken(UserDetails userDetails) {
         Date issuedDate = new Date();
         Date expiredDate = new Date(issuedDate.getTime() + jwtLifetime.toMillis());
+
         return Jwts.builder()
-//                .setClaims(claims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(issuedDate)
                 .setExpiration(expiredDate)
@@ -35,17 +33,17 @@ public class JwtTokenUtils {
                 .compact();
     }
 
-    public String getUserEmail(String token){
+    public String getUserEmail(String token) {
         return getAllClaimsFromToken(token).getSubject();
     }
 
-    private Claims getAllClaimsFromToken(String token){
+    private Claims getAllClaimsFromToken(String token) {
+
         return Jwts.parser()
                 .setSigningKey(secret)
-                .parseClaimsJwt(token)
+                .parseClaimsJws(token)
                 .getBody();
     }
-
 
 
 }

@@ -1,55 +1,64 @@
 package com.example.expense.controller;
 
+import com.example.expense.DTO.ExpenseCategoryRequest;
+import com.example.expense.DTO.ExpenseCategoryResponse;
 import com.example.expense.model.ExpenseCategory;
 import com.example.expense.service.ExpenseCategoryService;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/expense-categories")
 public class ExpenseCategoryController {
+    @Autowired
     private final ExpenseCategoryService expenseCategoryService;
 
-    @Autowired
-    public ExpenseCategoryController(ExpenseCategoryService expenseCategoryService) {
-        this.expenseCategoryService = expenseCategoryService;
-    }
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<List<ExpenseCategory>> getAllExpenseCategoriesByUserId(@PathVariable Long userId) {
-        List<ExpenseCategory> expenseCategories = expenseCategoryService.getAllExpenseCategoriesByUserId(userId);
-        if (expenseCategories != null) {
-
-            return ResponseEntity.ok(expenseCategories);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    @GetMapping
+    public ResponseEntity<List<ExpenseCategoryResponse>> getAllUserExpenseCategories() {
+        List<ExpenseCategory> expenseCategories = expenseCategoryService.getAllUserExpCategories();
+        return ResponseEntity.ok(ExpenseCategoryResponse.convertMany(expenseCategories));
     }
 
 
     @PostMapping
-    public ResponseEntity<ExpenseCategory> createExpenseCategory(@RequestBody ExpenseCategory category) {
+    public ResponseEntity<ExpenseCategoryResponse> createExpenseCategory(@RequestBody @Valid ExpenseCategoryRequest category) {
         ExpenseCategory createdExpenseCategory = expenseCategoryService.createExpenseCategory(category);
-        return ResponseEntity.ok(createdExpenseCategory);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ExpenseCategoryResponse.convertOne(createdExpenseCategory));
     }
 
 
     @PutMapping("/{categoryId}")
-    public ResponseEntity<ExpenseCategory> updateExpenseCategory(@PathVariable Long categoryId, @RequestBody ExpenseCategory updatedCategory) {
-        if (!categoryId.equals(updatedCategory.getId())) {
-            throw new IllegalArgumentException("Mismatched IDs in the URL and the request body.");
+    public ResponseEntity<?> updateExpenseCategory(@PathVariable Long categoryId, @RequestBody @Valid ExpenseCategoryRequest updatedCategory) {
+        try {
+            ExpenseCategory updated = expenseCategoryService.updateExpenseCategory(categoryId, updatedCategory);
+            return ResponseEntity.ok(ExpenseCategoryResponse.convertOne(updated));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
-        ExpenseCategory updated = expenseCategoryService.updateExpenseCategory(updatedCategory);
-        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{categoryId}")
-    public ResponseEntity<Void> deleteExpenseCategory(@PathVariable Long categoryId) {
-        expenseCategoryService.deleteExpenseCategory(categoryId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteExpenseCategory(@PathVariable Long categoryId) {
+        try {
+            expenseCategoryService.deleteExpenseCategory(categoryId);
+            return ResponseEntity.noContent().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        }
     }
 
 }

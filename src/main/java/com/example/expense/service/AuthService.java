@@ -31,6 +31,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public String createAuthToken(JwtRequest authRequest){
+
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                     authRequest.getEmail(),

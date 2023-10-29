@@ -1,56 +1,65 @@
 package com.example.expense.controller;
 
+import com.example.expense.DTO.IncomeCategoryRequest;
+import com.example.expense.DTO.IncomeCategoryResponse;
 import com.example.expense.model.IncomeCategory;
 import com.example.expense.service.IncomeCategoryService;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 
 @RestController
 @RequestMapping("/api/income-categories")
+@RequiredArgsConstructor
 public class IncomeCategoryController {
+    @Autowired
     private final IncomeCategoryService incomeCategoryService;
 
-    @Autowired
-    public IncomeCategoryController(IncomeCategoryService incomeCategoryService) {
-        this.incomeCategoryService = incomeCategoryService;
-    }
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<List<IncomeCategory>> getAllIncomeCategoryByUserId(@PathVariable Long userId) {
-        List<IncomeCategory> incomeCategories = incomeCategoryService.getAllIncomeCategoriesByUserId(userId);
-        if (incomeCategories != null) {
-            return ResponseEntity.ok(incomeCategories);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    @GetMapping
+    public ResponseEntity<List<IncomeCategoryResponse>> getAllUserIncomeCategory() {
+        List<IncomeCategory> incomeCategories = incomeCategoryService.getAllUserIncomeCategories();
+        return ResponseEntity.ok(IncomeCategoryResponse.convertMany(incomeCategories));
     }
 
     @PostMapping
-    public ResponseEntity<IncomeCategory> createIncomeCategory(@RequestBody IncomeCategory category) {
-        IncomeCategory createdIncomeCategory = incomeCategoryService.createIncomeCategory(category);
-        return ResponseEntity.ok(createdIncomeCategory);
+    public ResponseEntity<?> createIncomeCategory(@RequestBody @Valid IncomeCategoryRequest categoryRequest) {
+        IncomeCategory createdIncomeCategory = incomeCategoryService.createIncomeCategory(categoryRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(IncomeCategoryResponse.convertOne(createdIncomeCategory));
     }
 
     @PutMapping("/{categoryId}")
-    public ResponseEntity<IncomeCategory> updateIncomeCategory(@PathVariable Long categoryId, @RequestBody IncomeCategory updatedCategory) {
-
-        if (!categoryId.equals(updatedCategory.getId())) {
-            throw new IllegalArgumentException("Mismatched IDs in the URL and the request body.");
+    public ResponseEntity<?> updateIncomeCategory(@PathVariable Long categoryId,
+                                                  @RequestBody @Valid IncomeCategoryRequest updatedCategory) {
+        try {
+            IncomeCategory updated = incomeCategoryService.updateIncomeCategory(categoryId, updatedCategory);
+            return ResponseEntity.ok(IncomeCategoryResponse.convertOne(updated));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
-
-        IncomeCategory updated = incomeCategoryService.updateIncomeCategory(updatedCategory);
-        return ResponseEntity.ok(updated);
 
     }
 
     @DeleteMapping("/{categoryId}")
-    public ResponseEntity<Void> deleteIncomeCategory(@PathVariable Long categoryId) {
-        incomeCategoryService.deleteIncomeCategory(categoryId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteIncomeCategory(@PathVariable Long categoryId) {
+        try {
+            incomeCategoryService.deleteIncomeCategory(categoryId);
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
 
 }

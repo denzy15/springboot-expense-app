@@ -6,34 +6,30 @@ import com.example.expense.DTO.RegistrationUserDto;
 import com.example.expense.DTO.UserDto;
 import com.example.expense.exceptions.AppError;
 import com.example.expense.service.AuthService;
-import com.example.expense.service.UserService;
-import com.example.expense.utils.JwtTokenUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/auth")
+@RequiredArgsConstructor
+
 public class AuthController {
+    @Autowired
     private  AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody JwtRequest request) {
         String token;
         try {
-
         token = authService.createAuthToken(request);
         } catch (Exception e){
-            return new ResponseEntity<>(new AppError(HttpStatus.UNAUTHORIZED.value(), e.getMessage()), HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(new AppError(HttpStatus.BAD_REQUEST.value(), e.getMessage()), HttpStatus.BAD_REQUEST);
         }
         // JWTResponse may be unnecessary
         return ResponseEntity.ok(new JwtResponse(token));

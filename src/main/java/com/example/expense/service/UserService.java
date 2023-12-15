@@ -57,7 +57,11 @@ public class UserService implements UserDetailsService {
     public User getAuthorizedUser(){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
-        return getUserByEmail(email);
+        User authUser = getUserByEmail(email);
+        if (authUser == null){
+            throw new NullPointerException("Authorization Error");
+        }
+        return authUser;
     }
 
 }

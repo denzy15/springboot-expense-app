@@ -22,7 +22,7 @@ public class ExpenseResponse {
                 new ExpenseCategoryResponse(expense.getCategory().getId(), expense.getCategory().getName()));
     }
 
-    public static List<ExpenseResponse> convertMany(List<Expense> expenses){
+    public static List<ExpenseResponse> convertMany(List<Expense> expenses) {
         return expenses.stream()
                 .map(ExpenseResponse::convertOne)
                 .collect(Collectors.toList());

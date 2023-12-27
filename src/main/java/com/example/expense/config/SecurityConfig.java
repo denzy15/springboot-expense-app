@@ -57,14 +57,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth
-                                .requestMatchers("auth/*").permitAll()
-                                .anyRequest().authenticated()
+                        .requestMatchers("auth/*").permitAll()
+                        .anyRequest().authenticated()
 
                 )
                 .httpBasic(withDefaults())
                 .formLogin(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                //                .cors(withDefaults())
+                .cors(withDefaults())
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -113,91 +113,57 @@ public class SecurityConfig {
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                         FilterChain filterChain) throws ServletException, IOException {
 
-//                        String authHeader = request.getHeader("Authorization");
-//                        String email = null;
-//                        String jwt = null;
-//
-//                        if (request.getServletPath().startsWith("/auth")) {
-//                            filterChain.doFilter(request, response);
-//                            return;
-//                        }
-//
-//                        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-//                            jwt = authHeader.substring(7);
-//                            try {
-//                                email = jwtTokenUtils.getUserEmail(jwt);
-//                            } catch (ExpiredJwtException e) {
-////                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Jwt token has expired");
-//                                handleJwtException(response, "Jwt expired");
-//                                return;
-//                            } catch (SignatureException e) {
-//                                handleJwtException(response, "Wrong signature");
-////                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Jwt token has wrong signature");
-//                                return;
-//                            }
-//                        } else {
-//                                handleJwtException(response, "Unauthorized su4ka");
-////                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized su4ka");
-//                        }
-//
-//                        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-//                            List<GrantedAuthority> authorities = Collections.singletonList(new
-//                            SimpleGrantedAuthority("USER"));
-//
-//                            UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken
-//                            (email, null,
-//                                    authorities);
-//                            SecurityContextHolder.getContext().setAuthentication(token);
-//                        }
-//
-//                        filterChain.doFilter(request, response);
             String authHeader = request.getHeader("Authorization");
             String email = null;
             String jwt = null;
-            System.out.println(request.getServletPath());
+
+            if (request.getServletPath().startsWith("/auth")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 jwt = authHeader.substring(7);
                 try {
                     email = jwtTokenUtils.getUserEmail(jwt);
                 } catch (ExpiredJwtException e) {
-                    log.debug("Jwt expired");
-                    response.setHeader("custom-error", "Jwt Expired");
+                    handleJwtException(response, "Jwt expired");
+                    return;
 
                 } catch (SignatureException e) {
-                    response.setHeader("custom-error", "Wrong data provided");
-
-                    log.debug("Wrong sign");
+                    handleJwtException(response, "Wrong signature");
+                    return;
                 }
-
-
+            } else {
+                handleJwtException(response, "Unauthorized");
+                return;
             }
 
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("USER"));
+                List<GrantedAuthority> authorities = Collections.singletonList(new
+                        SimpleGrantedAuthority("USER"));
 
-                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                        email,
-                        null,
-                        authorities
-                );
+                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken
+                        (email, null,
+                                authorities);
                 SecurityContextHolder.getContext().setAuthentication(token);
             }
+
             filterChain.doFilter(request, response);
 
         }
 
 
-                private void handleJwtException(HttpServletResponse response, String errorMessage) throws
+        private void handleJwtException(HttpServletResponse response, String errorMessage) throws
                 IOException {
-                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                    response.setContentType("application/json");
-                    response.getWriter().write(errorMessage);
-                    response.getWriter().flush();
-                    response.getWriter().close();
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType("application/json");
+            response.getWriter().write(errorMessage);
+            response.getWriter().flush();
+            response.getWriter().close();
 
 
-                }
+        }
 
     }
 }

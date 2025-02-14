@@ -31,12 +31,16 @@ public class BudgetController {
         return ResponseEntity.ok(budgetList);
     }
 
+    @GetMapping("/{budgetId}")
+    public ResponseEntity<Budget> getBudgetById(@AuthenticationPrincipal UserPrincipal currentUser, @PathVariable Long budgetId) {
+        Budget budget = budgetService.getBudgetById(budgetId, currentUser);
+        return ResponseEntity.ok(budget);
+    }
+
     @PostMapping
     public ResponseEntity<Budget> createBudget(@AuthenticationPrincipal UserPrincipal currentUser, @RequestBody BudgetDTO budgetRequest) {
 
-        UserReference budgetOwner = new UserReference(currentUser.getId(), currentUser.getEmail(), currentUser.getUsername());
-
-        Budget newBudget = budgetService.createBudget(budgetOwner, budgetRequest);
+        Budget newBudget = budgetService.createBudget(currentUser, budgetRequest);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(newBudget);
     }
@@ -64,13 +68,10 @@ public class BudgetController {
     public ResponseEntity<BudgetMember> addMember(
             @PathVariable Long budgetId,
             @AuthenticationPrincipal UserPrincipal currentUser,
-            @RequestBody BudgetMemberDTO request) {
+            @RequestBody BudgetMemberDTO budgetMemberRequest) {
         BudgetMember member = budgetMemberService.addMember(
                 budgetId,
-                request.getId(),
-                request.getEmail(),
-                request.getUsername(),
-                request.getRole(),
+                budgetMemberRequest,
                 currentUser.getId()
         );
         return ResponseEntity.ok(member);

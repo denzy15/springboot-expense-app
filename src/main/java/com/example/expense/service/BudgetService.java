@@ -1,11 +1,14 @@
 package com.example.expense.service;
 
 import com.example.expense.DTO.BudgetDTO;
+import com.example.expense.DTO.UserPrincipal;
 import com.example.expense.model.Budget;
 import com.example.expense.model.BudgetMember;
 import com.example.expense.model.UserReference;
 import com.example.expense.repository.BudgetMemberRepository;
 import com.example.expense.repository.BudgetRepository;
+import com.example.expense.repository.UserReferenceRepository;
+import com.example.expense.utils.BudgetUtils;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -20,10 +23,21 @@ public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final BudgetMemberRepository budgetMemberRepository;
+    private final UserReferenceRepository userReferenceRepository;
 
-    public Budget createBudget(UserReference owner, BudgetDTO budgetRequest) {
+    private final BudgetUtils budgetUtils;
+
+    public Budget createBudget(UserPrincipal owner, BudgetDTO budgetRequest) {
+        UserReference userReference = userReferenceRepository.findById(owner.getId())
+                .orElseGet(
+                        () -> {
+                            UserReference newUser = new UserReference(owner.getId(), owner.getEmail(), owner.getUsername());
+                            return userReferenceRepository.save(newUser);
+                        }
+                );
+
         Budget budget = new Budget();
-        budget.setOwner(owner);
+        budget.setOwner(userReference);
         budget.setName(budgetRequest.getName());
         budget.setShared(budgetRequest.isShared());
         return budgetRepository.save(budget);
@@ -70,5 +84,18 @@ public class BudgetService {
         allBudgets.addAll(ownedBudgets);
         allBudgets.addAll(memberBudgets);
         return allBudgets;
+    }
+
+    public Budget getBudgetById(Long budgetId, UserPrincipal currentUser) {
+        Budget budget = budgetRepository.findById(budgetId).orElseThrow(
+                () -> new EntityNotFoundException("Бюджет не найден")
+        );
+
+        if (!budgetUtils.hasAccessToBudget(budgetId, currentUser.getId())) {
+            throw new AccessDeniedException("У вас нет доступа к этому бюджету");
+        }
+
+        return budget;
+
     }
 }

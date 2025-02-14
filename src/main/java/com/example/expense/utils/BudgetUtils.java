@@ -6,7 +6,9 @@ import com.example.expense.model.BudgetMember;
 import com.example.expense.repository.BudgetMemberRepository;
 import com.example.expense.repository.BudgetRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -14,6 +16,8 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
+@Setter
+@Getter
 public class BudgetUtils {
     private final BudgetRepository budgetRepository;
     private final BudgetMemberRepository budgetMemberRepository;
@@ -41,6 +45,15 @@ public class BudgetUtils {
         return memberOpt.isPresent() && memberOpt.get().getRole() == Role.READ_WRITE;
     }
 
+    public boolean hasAccessToBudget(Long budgetId, Long activeUserId) {
+        Budget budget = budgetRepository.findById(budgetId)
+                .orElseThrow(() -> new EntityNotFoundException("Бюджет id=" + budgetId + " не найден"));
 
+        if (Objects.equals(budget.getOwner().getId(), activeUserId)) {
+            return true;
+        }
+
+        return budgetMemberRepository.findByBudgetIdAndUserId(budgetId, activeUserId).isPresent();
+    }
 
 }

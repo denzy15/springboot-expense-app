@@ -1,6 +1,7 @@
 package com.example.expense.model;
 
 import com.example.expense.enums.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -28,6 +29,7 @@ public class BudgetMember {
 
     @ManyToOne
     @JoinColumn(name = "BUDGET_ID", nullable = false)
+    @JsonIgnore
     private Budget budget;
 
     @ManyToOne

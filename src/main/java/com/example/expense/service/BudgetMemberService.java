@@ -1,5 +1,6 @@
 package com.example.expense.service;
 
+import com.example.expense.DTO.BudgetMemberDTO;
 import com.example.expense.enums.Role;
 import com.example.expense.model.Budget;
 import com.example.expense.model.BudgetMember;
@@ -20,8 +21,7 @@ public class BudgetMemberService {
 
     private final BudgetRepository budgetRepository;
     private final BudgetMemberRepository budgetMemberRepository;
-
-    private BudgetUtils budgetUtils;
+    private final BudgetUtils budgetUtils;
 
     public BudgetMember changeMemberRole(Long budgetId, Long memberId, Role role, Long activeUserId) {
 
@@ -37,8 +37,8 @@ public class BudgetMemberService {
 
     }
 
-    public BudgetMember addMember(Long budgetId, Long memberId, String email, String username, Role role, Long activeUserId) {
-        if (budgetMemberRepository.existsByBudgetIdAndUserId(budgetId, memberId)) {
+    public BudgetMember addMember(Long budgetId, BudgetMemberDTO budgetMember, Long activeUserId) {
+        if (budgetMemberRepository.existsByBudgetIdAndUserId(budgetId, budgetMember.getId())) {
             throw new IllegalArgumentException("Этот пользователь уже является участником бюджета.");
         }
 
@@ -50,11 +50,11 @@ public class BudgetMemberService {
 
         BudgetMember member = new BudgetMember();
 
-        UserReference userReference = new UserReference(memberId, email, username);
+        UserReference userReference = new UserReference(budgetMember.getId(), budgetMember.getEmail(), budgetMember.getUsername());
 
         member.setBudget(budget);
         member.setUser(userReference);
-        member.setRole(role);
+        member.setRole(budgetMember.getRole());
         return budgetMemberRepository.save(member);
     }
 

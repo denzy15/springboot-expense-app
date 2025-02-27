@@ -24,7 +24,6 @@ public class CategoryController {
 
         Category category = categoryService.createCategory(categoryRequest, currentUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(category);
-
     }
 
     @PutMapping("/{categoryId}")

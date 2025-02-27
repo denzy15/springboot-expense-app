@@ -1,20 +1,20 @@
 package com.example.expense.controller;
 
-import com.example.expense.DTO.BudgetDTO;
+import com.example.expense.DTO.BudgetRequestDTO;
 import com.example.expense.DTO.BudgetMemberDTO;
+import com.example.expense.DTO.BudgetResponseDTO;
 import com.example.expense.DTO.UserPrincipal;
 import com.example.expense.model.Budget;
 import com.example.expense.model.BudgetMember;
-import com.example.expense.model.UserReference;
+import com.example.expense.model.Transaction;
 import com.example.expense.service.BudgetMemberService;
 import com.example.expense.service.BudgetService;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.expense.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 
@@ -24,6 +24,7 @@ import java.util.List;
 public class BudgetController {
     private final BudgetService budgetService;
     private final BudgetMemberService budgetMemberService;
+    private final TransactionService transactionService;
 
     @GetMapping
     public ResponseEntity<List<Budget>> getUserBudgets(@AuthenticationPrincipal UserPrincipal currentUser) {
@@ -32,13 +33,15 @@ public class BudgetController {
     }
 
     @GetMapping("/{budgetId}")
-    public ResponseEntity<Budget> getBudgetById(@AuthenticationPrincipal UserPrincipal currentUser, @PathVariable Long budgetId) {
-        Budget budget = budgetService.getBudgetById(budgetId, currentUser);
+    public ResponseEntity<BudgetResponseDTO> getBudgetById(@AuthenticationPrincipal UserPrincipal currentUser, @PathVariable Long budgetId) {
+        BudgetResponseDTO budget = budgetService.getBudgetById(budgetId, currentUser);
+
+
         return ResponseEntity.ok(budget);
     }
 
     @PostMapping
-    public ResponseEntity<Budget> createBudget(@AuthenticationPrincipal UserPrincipal currentUser, @RequestBody BudgetDTO budgetRequest) {
+    public ResponseEntity<Budget> createBudget(@AuthenticationPrincipal UserPrincipal currentUser, @RequestBody BudgetRequestDTO budgetRequest) {
 
         Budget newBudget = budgetService.createBudget(currentUser, budgetRequest);
 
@@ -47,7 +50,7 @@ public class BudgetController {
 
     @PutMapping("/{budgetId}")
     public ResponseEntity<Budget> updateBudget(@AuthenticationPrincipal UserPrincipal currentUser,
-                                               @RequestBody BudgetDTO budgetRequest,
+                                               @RequestBody BudgetRequestDTO budgetRequest,
                                                @PathVariable Long budgetId) {
 
         Budget updatedBudget = budgetService.updateBudget(budgetId, budgetRequest, currentUser.getId());

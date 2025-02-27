@@ -1,9 +1,6 @@
 package com.example.expense.DTO;
 
 
-import com.example.expense.model.UserReference;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class BudgetDTO {
+public class BudgetRequestDTO {
     private String name;
     private boolean shared;
 }

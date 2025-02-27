@@ -12,6 +12,10 @@ import com.example.expense.repository.TransactionRepository;
 import com.example.expense.utils.BudgetUtils;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +33,14 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
 
     private final BudgetUtils budgetUtils;
+
+    public List<Transaction> getLast10Transactions(Long budgetId,UserPrincipal currentUser) {
+        if (!budgetUtils.hasAccessToBudget(budgetId, currentUser.getId())) {
+            throw new AccessDeniedException("Нет доступа");
+        }
+
+        return transactionRepository.findTop10ByAccount_Budget_IdOrderByCreatedAtDesc(budgetId);
+    }
 
     public Transaction createTransaction(TransactionDTO transactionRequest, UserPrincipal currentUser) {
         Transaction transaction = new Transaction();
@@ -123,7 +135,11 @@ public class TransactionService {
         transactionRepository.deleteById(transactionId);
     }
 
-    public List<Transaction> getTransactionsByBudget(Long budgetId) {
-        return transactionRepository.findByAccount_BudgetId(budgetId);
+    public Page<Transaction> getTransactionsByBudget(Long budgetId, UserPrincipal currentUser,  Pageable pageable) {
+        if (!budgetUtils.hasModifyAccess(budgetId, currentUser.getId())) {
+            throw new AccessDeniedException("Недостаточно прав");
+        }
+
+        return transactionRepository.findByAccount_Budget_Id(budgetId, pageable);
     }
 }

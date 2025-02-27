@@ -1,12 +1,15 @@
 package com.example.expense.service;
 
-import com.example.expense.DTO.BudgetDTO;
+import com.example.expense.DTO.BudgetRequestDTO;
+import com.example.expense.DTO.BudgetResponseDTO;
 import com.example.expense.DTO.UserPrincipal;
 import com.example.expense.model.Budget;
 import com.example.expense.model.BudgetMember;
+import com.example.expense.model.Transaction;
 import com.example.expense.model.UserReference;
 import com.example.expense.repository.BudgetMemberRepository;
 import com.example.expense.repository.BudgetRepository;
+import com.example.expense.repository.TransactionRepository;
 import com.example.expense.repository.UserReferenceRepository;
 import com.example.expense.utils.BudgetUtils;
 import jakarta.persistence.EntityNotFoundException;
@@ -24,10 +27,11 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final BudgetMemberRepository budgetMemberRepository;
     private final UserReferenceRepository userReferenceRepository;
+    private final TransactionRepository transactionRepository;
 
     private final BudgetUtils budgetUtils;
 
-    public Budget createBudget(UserPrincipal owner, BudgetDTO budgetRequest) {
+    public Budget createBudget(UserPrincipal owner, BudgetRequestDTO budgetRequest) {
         UserReference userReference = userReferenceRepository.findById(owner.getId())
                 .orElseGet(
                         () -> {
@@ -43,7 +47,7 @@ public class BudgetService {
         return budgetRepository.save(budget);
     }
 
-    public Budget updateBudget(Long budgetId, BudgetDTO budgetRequest, Long currentUserId) {
+    public Budget updateBudget(Long budgetId, BudgetRequestDTO budgetRequest, Long currentUserId) {
 
         Budget budget = budgetRepository.findById(budgetId).orElseThrow(
                 () -> new EntityNotFoundException("Бюджет не найден")
@@ -86,7 +90,7 @@ public class BudgetService {
         return allBudgets;
     }
 
-    public Budget getBudgetById(Long budgetId, UserPrincipal currentUser) {
+    public BudgetResponseDTO getBudgetById(Long budgetId, UserPrincipal currentUser) {
         Budget budget = budgetRepository.findById(budgetId).orElseThrow(
                 () -> new EntityNotFoundException("Бюджет не найден")
         );
@@ -95,7 +99,19 @@ public class BudgetService {
             throw new AccessDeniedException("У вас нет доступа к этому бюджету");
         }
 
-        return budget;
+        List<Transaction> recentTransactions = transactionRepository.findTop10ByAccount_Budget_IdOrderByCreatedAtDesc(budgetId);
+
+
+        return new BudgetResponseDTO(
+                budgetId,
+                budget.getName(),
+                budget.getOwner(),
+                budget.isShared(),
+                budget.getAccounts(),
+                budget.getCategories(),
+                budget.getMembers(),
+                recentTransactions
+        );
 
     }
 }

@@ -39,12 +39,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             accessToken = authHeader.substring(7);
         }
 
+
+
         if (accessToken != null) {
             try {
                 Claims claims = jwtService.parseToken(accessToken);
                 authenticateUser(claims);
             } catch (Exception e) {
-                logger.warn("Access token недействителен. Пробуем обновить...");
+                logger.error("Token недействителен. Пользователь должен войти заново.");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                return;
+
+               /* logger.warn("Access token недействителен. Пробуем обновить...");
 
                 String refreshToken = getRefreshTokenFromCookies(request);
                 if (refreshToken != null) {
@@ -66,8 +72,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                     return;
                 }
+            */
             }
         }
+
 
         filterChain.doFilter(request, response);
     }
@@ -84,14 +92,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    private String getRefreshTokenFromCookies(HttpServletRequest request) {
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("jwt".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
+
 }

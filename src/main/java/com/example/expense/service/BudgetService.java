@@ -13,12 +13,15 @@ import com.example.expense.repository.TransactionRepository;
 import com.example.expense.repository.UserReferenceRepository;
 import com.example.expense.utils.BudgetUtils;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +30,7 @@ public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final BudgetMemberRepository budgetMemberRepository;
     private final UserReferenceRepository userReferenceRepository;
-    private final TransactionRepository transactionRepository;
+    private final TransactionService transactionService;
 
     private final BudgetUtils budgetUtils;
 
@@ -47,7 +50,8 @@ public class BudgetService {
         return budgetRepository.save(budget);
     }
 
-    public Budget updateBudget(Long budgetId, BudgetRequestDTO budgetRequest, Long currentUserId) {
+    @Transactional
+    public void changeBudgetAccess(Long budgetId, Boolean shared, Long currentUserId) {
 
         Budget budget = budgetRepository.findById(budgetId).orElseThrow(
                 () -> new EntityNotFoundException("Бюджет не найден")
@@ -57,8 +61,27 @@ public class BudgetService {
             throw new AccessDeniedException("У вас нет прав для изменения данного бюджета.");
         }
 
-        budget.setName(budgetRequest.getName());
-        budget.setShared(budgetRequest.isShared());
+        if (!shared) {
+            budgetMemberRepository.deleteByBudgetId(budgetId);
+            budget.getMembers().clear(); // Удаляем участников из объекта, чтобы JPA правильно синхронизировал состояние
+
+        }
+
+        budget.setShared(shared);
+
+    }
+
+    public Budget renameBudget(Long budgetId, String budgetTitle, Long currentUserId) {
+
+        Budget budget = budgetRepository.findById(budgetId).orElseThrow(
+                () -> new EntityNotFoundException("Бюджет не найден")
+        );
+
+        if (!budget.getOwner().getId().equals(currentUserId)) {
+            throw new AccessDeniedException("У вас нет прав для изменения данного бюджета.");
+        }
+
+        budget.setName(budgetTitle);
 
         return budgetRepository.save(budget);
 
@@ -79,15 +102,15 @@ public class BudgetService {
 
     public List<Budget> getBudgetsByUser(Long userId) {
         List<Budget> ownedBudgets = budgetRepository.findByOwnerId(userId);
-        List<Budget> memberBudgets = budgetMemberRepository.findByBudgetId(userId)
+        List<Budget> memberBudgets = budgetMemberRepository.findByUserId(userId)
                 .stream()
                 .map(BudgetMember::getBudget)
                 .toList();
 
-        List<Budget> allBudgets = new ArrayList<>();
+        Set<Budget> allBudgets = new HashSet<>();
         allBudgets.addAll(ownedBudgets);
         allBudgets.addAll(memberBudgets);
-        return allBudgets;
+        return new ArrayList<>(allBudgets);
     }
 
     public BudgetResponseDTO getBudgetById(Long budgetId, UserPrincipal currentUser) {
@@ -99,7 +122,7 @@ public class BudgetService {
             throw new AccessDeniedException("У вас нет доступа к этому бюджету");
         }
 
-        List<Transaction> recentTransactions = transactionRepository.findTop10ByAccount_Budget_IdOrderByCreatedAtDesc(budgetId);
+        List<Transaction> recentTransactions = transactionService.getLast10Transactions(budgetId);
 
 
         return new BudgetResponseDTO(

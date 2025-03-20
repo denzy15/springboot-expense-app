@@ -1,6 +1,7 @@
 package com.example.expense.model;
 
 import com.example.expense.enums.OperationType;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,10 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "CATEGORIES")
@@ -32,6 +30,7 @@ public class Category {
     @ManyToOne
     @JoinColumn(name = "BUDGET_ID", nullable = false)
     @JsonIgnore
+    @JsonBackReference
     private Budget budget;
 
     @Enumerated(EnumType.STRING)

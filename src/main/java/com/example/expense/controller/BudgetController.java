@@ -48,14 +48,23 @@ public class BudgetController {
         return ResponseEntity.status(HttpStatus.CREATED).body(newBudget);
     }
 
-    @PutMapping("/{budgetId}")
-    public ResponseEntity<Budget> updateBudget(@AuthenticationPrincipal UserPrincipal currentUser,
-                                               @RequestBody BudgetRequestDTO budgetRequest,
+    @PutMapping("/{budgetId}/rename")
+    public ResponseEntity<Budget> renameBudget(@AuthenticationPrincipal UserPrincipal currentUser,
+                                               @RequestBody BudgetRequestDTO dto,
                                                @PathVariable Long budgetId) {
 
-        Budget updatedBudget = budgetService.updateBudget(budgetId, budgetRequest, currentUser.getId());
+        Budget updatedBudget = budgetService.renameBudget(budgetId, dto.getName(), currentUser.getId());
 
         return ResponseEntity.ok(updatedBudget);
+    }
+    @PutMapping("/{budgetId}/change-access")
+    public ResponseEntity<?> changeBudgetAccess(@AuthenticationPrincipal UserPrincipal currentUser,
+                                               @RequestBody BudgetRequestDTO requestDTO,
+                                               @PathVariable Long budgetId) {
+
+        budgetService.changeBudgetAccess(budgetId, requestDTO.isShared(), currentUser.getId());
+
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{budgetId}")
@@ -93,13 +102,13 @@ public class BudgetController {
     }
 
 
-    @DeleteMapping("/{budgetId}/kick-member")
+    @PutMapping("/{budgetId}/kick-member")
     public ResponseEntity<?> kickMember(
             @PathVariable Long budgetId,
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody BudgetMemberDTO request) {
 
-            budgetMemberService.removeMember(budgetId, request.getId(), currentUser.getId());
+            budgetMemberService.kickMember(budgetId, request.getId(), currentUser.getId());
             return ResponseEntity.noContent().build();
 
     }

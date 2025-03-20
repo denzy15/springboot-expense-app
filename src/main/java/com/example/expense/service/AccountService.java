@@ -1,5 +1,6 @@
 package com.example.expense.service;
 
+import com.example.expense.DTO.AccountBalanceTransferRequestDTO;
 import com.example.expense.DTO.AccountDTO;
 import com.example.expense.model.Account;
 import com.example.expense.model.Budget;
@@ -9,8 +10,10 @@ import com.example.expense.repository.BudgetRepository;
 import com.example.expense.utils.BudgetUtils;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -96,6 +99,31 @@ public class AccountService {
         return accountRepository.findByBudgetId(budgetId);
     }
 
+    public List<Account> transferBalance(Long budgetId, AccountBalanceTransferRequestDTO request,  UserReference currentUser)  {
+        Account accountFrom = accountRepository.findById(request.getAccountIdFrom()).orElseThrow(
+                () -> new EntityNotFoundException("Счет 1 не найден"));
+
+        Account accountTo = accountRepository.findById(request.getAccountIdTo()).orElseThrow(
+                () -> new EntityNotFoundException("Счет 2 не найден"));
+
+        if (
+                !budgetUtils.hasModifyAccess(budgetId, currentUser.getId())
+        ) {
+            throw new AccessDeniedException("Недостаточно прав для изменения");
+        }
+
+        if (accountFrom.getBalance().compareTo(request.getAmount()) < 0 ) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Недостаточно средств на счете");
+        }
+
+        accountFrom.setBalance(accountFrom.getBalance().subtract(request.getAmount()));
+        accountTo.setBalance(accountTo.getBalance().add(request.getAmount()));
+
+        accountRepository.save(accountFrom);
+        accountRepository.save(accountTo);
+
+        return accountRepository.findByBudgetId(budgetId);
+    }
 
 }
 

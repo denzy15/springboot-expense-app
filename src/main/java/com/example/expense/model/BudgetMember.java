@@ -28,12 +28,12 @@ public class BudgetMember {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "BUDGET_ID", nullable = false)
+    @JoinColumn(name = "budget_id", nullable = false)
     @JsonIgnore
     private Budget budget;
 
     @ManyToOne
-    @JoinColumn(name = "USER_ID", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private UserReference user;
 
     @Enumerated(EnumType.STRING)

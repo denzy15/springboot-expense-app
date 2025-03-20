@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,5 +24,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT a.budget.id FROM Transaction t JOIN t.account a WHERE t.id = :transactionId")
     Optional<Long> findBudgetIdByTransactionId(@Param("transactionId") Long transactionId);
 
+    @Query("SELECT t FROM Transaction t WHERE t.account.budget.id = :budgetId AND t.createdAt BETWEEN :startDate AND :endDate")
+    List<Transaction> findByBudgetAndDateRange(@Param("budgetId") Long budgetId,
+                                               @Param("startDate") LocalDateTime startDate,
+                                               @Param("endDate") LocalDateTime endDate);
 }
 

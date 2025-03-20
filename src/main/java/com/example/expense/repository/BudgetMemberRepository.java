@@ -9,8 +9,9 @@ import java.util.Optional;
 
 @Repository
 public interface BudgetMemberRepository extends JpaRepository<BudgetMember, Long> {
-    List<BudgetMember> findByBudgetId(Long budgetId);
+    List<BudgetMember> findByUserId(Long userId);
     boolean existsByBudgetIdAndUserId(Long budgetId, Long userId);
     Optional<BudgetMember> findByBudgetIdAndUserId(Long budgetId, Long userId);
+    void deleteByBudgetId(Long budgetId);
 }
 

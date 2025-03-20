@@ -1,7 +1,6 @@
 package com.example.expense.service;
 
-import com.example.expense.DTO.TransactionDTO;
-import com.example.expense.DTO.UserPrincipal;
+import com.example.expense.DTO.*;
 import com.example.expense.enums.OperationType;
 import com.example.expense.model.Account;
 import com.example.expense.model.Category;
@@ -20,9 +19,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,15 +34,11 @@ public class TransactionService {
 
     private final BudgetUtils budgetUtils;
 
-    public List<Transaction> getLast10Transactions(Long budgetId,UserPrincipal currentUser) {
-        if (!budgetUtils.hasAccessToBudget(budgetId, currentUser.getId())) {
-            throw new AccessDeniedException("Нет доступа");
-        }
-
+    public List<Transaction> getLast10Transactions(Long budgetId) {
         return transactionRepository.findTop10ByAccount_Budget_IdOrderByCreatedAtDesc(budgetId);
     }
 
-    public Transaction createTransaction(TransactionDTO transactionRequest, UserPrincipal currentUser) {
+    public TransactionResponseDTO createTransaction(TransactionDTO transactionRequest, UserPrincipal currentUser) {
         Transaction transaction = new Transaction();
 
         Account account = accountRepository.findById(transactionRequest.getAccountId())
@@ -72,59 +68,96 @@ public class TransactionService {
         }
 
         accountRepository.save(account);
-        return transactionRepository.save(transaction);
+        transactionRepository.save(transaction);
+
+        List<Transaction> recentTrans = this.getLast10Transactions(account.getBudget().getId());
+
+        return new TransactionResponseDTO(recentTrans, transaction);
     }
 
-    public Transaction updateTransaction(Long transactionId, TransactionDTO transactionRequest, UserPrincipal currentUser) {
-        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(
+    public TransactionResponseDTO updateTransaction(Long transactionId, TransactionDTO transactionRequest, UserPrincipal currentUser) {
+        Transaction oldTransaction = transactionRepository.findById(transactionId).orElseThrow(
                 () -> new EntityNotFoundException("Транзакция не найдена")
         );
 
-        Account newAccount = accountRepository.findById(transactionRequest.getAccountId())
-                .orElseThrow(() -> new EntityNotFoundException("Счет не найден"));
-
-        if (!budgetUtils.hasModifyAccess(newAccount.getBudget().getId(), currentUser.getId())) {
-            throw new AccessDeniedException("Недостаточно прав");
+        if (!budgetUtils.hasModifyAccess(oldTransaction.getAccount().getBudget().getId(), currentUser.getId())) {
+            throw new AccessDeniedException("Недостаточно прав для изменения");
         }
 
         if (transactionRequest.getCategoryId() != null) {
             Category category = categoryRepository.findById(transactionRequest.getCategoryId()).orElse(null);
-            transaction.setCategory(category);
+            oldTransaction.setCategory(category);
         } else {
-            transaction.setCategory(null);
+            oldTransaction.setCategory(null);
         }
 
-        if (!Objects.equals(transaction.getAccount().getId(), newAccount.getId())) {
-            Account prevAccount = accountRepository.findById(transaction.getAccount().getId()).orElse(null);
+//        if (!Objects.equals(transaction.getAccount().getId(), account.getId())) {
+//            Account prevAccount = accountRepository.findById(transaction.getAccount().getId()).orElse(null);
+//
+//            transaction.setAccount(account);
+//
+//            if (transactionRequest.getType() == OperationType.EXPENSE) {
+//                account.setBalance(account.getBalance().subtract(transactionRequest.getAmount()));
+//
+//                if (prevAccount != null)
+//                    prevAccount.setBalance(prevAccount.getBalance().add(transactionRequest.getAmount()));
+//
+//            } else {
+//                account.setBalance(account.getBalance().add(transactionRequest.getAmount()));
+//
+//                if (prevAccount != null)
+//                    prevAccount.setBalance(prevAccount.getBalance().subtract(transactionRequest.getAmount()));
+//            }
+//
+//            if (prevAccount != null) accountRepository.save(prevAccount);
+//        }
 
-            transaction.setAccount(newAccount);
-
-            if (transactionRequest.getType() == OperationType.EXPENSE) {
-                newAccount.setBalance(newAccount.getBalance().subtract(transactionRequest.getAmount()));
-
-                if (prevAccount != null)
-                    prevAccount.setBalance(prevAccount.getBalance().add(transactionRequest.getAmount()));
-
-            } else {
-                newAccount.setBalance(newAccount.getBalance().add(transactionRequest.getAmount()));
-
-                if (prevAccount != null)
-                    prevAccount.setBalance(prevAccount.getBalance().subtract(transactionRequest.getAmount()));
-            }
-
-            if (prevAccount != null) accountRepository.save(prevAccount);
+        if (transactionRequest.isAdjustBalance()) {
+            adjustAccountBalances(oldTransaction, transactionRequest);
         }
 
-        transaction.setType(transactionRequest.getType());
-        transaction.setAmount(transactionRequest.getAmount());
-        transaction.setDescription(transactionRequest.getDescription());
-        transaction.setCreatedAt(transactionRequest.getCreatedAt() != null ? transactionRequest.getCreatedAt() : transaction.getCreatedAt());
+        oldTransaction.setType(transactionRequest.getType());
+        oldTransaction.setAmount(transactionRequest.getAmount());
+        oldTransaction.setDescription(transactionRequest.getDescription());
+        oldTransaction.setCreatedAt(transactionRequest.getCreatedAt() != null ? transactionRequest.getCreatedAt() : oldTransaction.getCreatedAt());
 
-        accountRepository.save(newAccount);
-        return transactionRepository.save(transaction);
+//        accountRepository.save(account);
+        transactionRepository.save(oldTransaction);
+
+        List<Transaction> recentTrans = this.getLast10Transactions(oldTransaction.getAccount().getBudget().getId());
+        return new TransactionResponseDTO(recentTrans, oldTransaction);
     }
 
-    public void deleteTransaction(Long transactionId, UserPrincipal currentUser) {
+    private void adjustAccountBalances(Transaction oldTransaction, TransactionDTO newTransaction) {
+        Account oldAccount = oldTransaction.getAccount();
+        Account newAccount = accountRepository.findById(newTransaction.getAccountId())
+                .orElseThrow(() -> new EntityNotFoundException("Новый счет не найден"));
+
+        BigDecimal oldAmount = oldTransaction.getAmount();
+        BigDecimal newAmount = newTransaction.getAmount();
+
+        // Отменяем старый эффект транзакции
+        if (oldTransaction.getType() == OperationType.EXPENSE) {
+            oldAccount.setBalance(oldAccount.getBalance().add(oldAmount)); // Вернуть деньги
+        } else {
+            oldAccount.setBalance(oldAccount.getBalance().subtract(oldAmount)); // Отнять доход
+        }
+
+        // Применяем новый эффект
+        if (newTransaction.getType() == OperationType.EXPENSE) {
+            newAccount.setBalance(newAccount.getBalance().subtract(newAmount)); // Вычесть деньги
+        } else {
+            newAccount.setBalance(newAccount.getBalance().add(newAmount)); // Прибавить доход
+        }
+
+        accountRepository.save(oldAccount);
+        if (!oldAccount.equals(newAccount)) {
+            accountRepository.save(newAccount);
+        }
+    }
+
+
+    public List<Transaction> deleteTransaction(Long transactionId, UserPrincipal currentUser) {
         Long budgetId = transactionRepository.findBudgetIdByTransactionId(transactionId)
                 .orElseThrow(() -> new EntityNotFoundException("Транзакция не найдена"));
 
@@ -133,6 +166,7 @@ public class TransactionService {
         }
 
         transactionRepository.deleteById(transactionId);
+        return this.getLast10Transactions(budgetId);
     }
 
     public Page<Transaction> getTransactionsByBudget(Long budgetId, UserPrincipal currentUser,  Pageable pageable) {
@@ -142,4 +176,70 @@ public class TransactionService {
 
         return transactionRepository.findByAccount_Budget_Id(budgetId, pageable);
     }
+
+
+    public TransactionSummaryResponseDTO getTransactionSummary(Long budgetId, LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        // Получаем список транзакций
+        List<Transaction> transactions = transactionRepository.findByBudgetAndDateRange(budgetId, startDateTime, endDateTime);
+
+        List<Category> budgetCategories = categoryRepository.findByBudgetId(budgetId);
+
+        List<CategorySummaryResponseDTO> incomes = budgetCategories.stream()
+                .filter(category -> category.getCategoryType() == OperationType.INCOME)
+                .map(category -> new CategorySummaryResponseDTO(category.getId(), category.getName(), OperationType.INCOME, BigDecimal.ZERO))
+                .collect(Collectors.toList());
+
+        List<CategorySummaryResponseDTO> expenses = budgetCategories.stream()
+                .filter(category -> category.getCategoryType() == OperationType.EXPENSE)
+                .map(category -> new CategorySummaryResponseDTO(category.getId(), category.getName(), OperationType.EXPENSE, BigDecimal.ZERO))
+                .collect(Collectors.toList());
+
+        incomes.add(new CategorySummaryResponseDTO(0L, "Другое", OperationType.INCOME, BigDecimal.ZERO));
+        expenses.add(new CategorySummaryResponseDTO(0L, "Другое", OperationType.EXPENSE, BigDecimal.ZERO));
+
+        for (Transaction transaction : transactions) {
+            OperationType operationType = transaction.getType();
+            BigDecimal amount = transaction.getAmount();
+            Long categoryId = transaction.getCategory() != null ? transaction.getCategory().getId() : 0L;
+
+            List<CategorySummaryResponseDTO> targetList = (operationType == OperationType.EXPENSE) ? expenses : incomes;
+
+            Optional<CategorySummaryResponseDTO> category = targetList.stream()
+                    .filter(c -> c.getId().equals(categoryId))
+                    .findFirst();
+
+            category.ifPresent(c -> c.setAmount(c.getAmount().add(amount)));
+        }
+
+        incomes.removeIf(c -> c.getId() == 0 && c.getAmount().compareTo(BigDecimal.ZERO) == 0);
+        expenses.removeIf(c -> c.getId() == 0 && c.getAmount().compareTo(BigDecimal.ZERO) == 0);
+
+        return new TransactionSummaryResponseDTO(incomes, expenses);
+    }
+
+//    public TransactionSummaryResponseDTO getTransactionSummary(Long budgetId, LocalDate startDate, LocalDate endDate) {
+//        List<Transaction> transactions = transactionRepository.findByBudgetAndDateRange(budgetId, startDate, endDate);
+//
+//        List<Map<CategorySummaryResponseDTO, BigDecimal>> expenseSummary = new ArrayList<>();
+//        List<Map<CategorySummaryResponseDTO, BigDecimal>> incomeSummary = new ArrayList<>();
+//
+//        for (Transaction transaction : transactions) {
+//            Category DBcategory = (transaction.getCategory() != null) ? transaction.getCategory() : new Category(0L, "Другое", null, transaction.getType());
+//
+//            CategorySummaryResponseDTO categoryDTO = new CategorySummaryResponseDTO(DBcategory.getId(), DBcategory.getName());
+//
+//            BigDecimal amount = transaction.getAmount();
+//
+//            if (transaction.getType() == OperationType.EXPENSE) {
+//                expenseSummary.put(categoryName, expenseSummary.getOrDefault(categoryName, BigDecimal.ZERO).add(amount));
+//            } else {
+//                incomeSummary.put(categoryName, incomeSummary.getOrDefault(categoryName, BigDecimal.ZERO).add(amount));
+//            }
+//        }
+//
+//        return new TransactionSummaryResponseDTO(incomeSummary, expenseSummary);
+//    }
 }

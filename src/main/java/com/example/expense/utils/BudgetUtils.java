@@ -9,6 +9,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -54,6 +55,28 @@ public class BudgetUtils {
         }
 
         return budgetMemberRepository.findByBudgetIdAndUserId(budgetId, activeUserId).isPresent();
+    }
+
+    public boolean isAbleToKick(Long budgetId, Long activeUserId, BudgetMember member) {
+        Budget budget = budgetRepository.findById(budgetId).orElseThrow(
+                () -> new EntityNotFoundException("Бюджет не найден")
+        );
+
+        if (Objects.equals(activeUserId, member.getId())) return  false;
+
+        if (budget.getOwner().getId().equals(activeUserId)) return true;
+
+        BudgetMember activeUser = budgetMemberRepository.findByBudgetIdAndUserId(budgetId, activeUserId).orElseThrow(
+                ()-> new EntityNotFoundException("Вы не являетесь участником бюджета")
+        );
+
+        Role memberRole = member.getRole();
+        Role activeUserRole = activeUser.getRole();
+
+        if (activeUserRole.equals(Role.READ) || activeUserRole.equals(memberRole)) return false;
+
+        return activeUserRole.equals(Role.READ_WRITE);
+
     }
 
 }

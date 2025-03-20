@@ -23,4 +23,6 @@ public class TransactionDTO {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    private boolean adjustBalance = false;
+
 }

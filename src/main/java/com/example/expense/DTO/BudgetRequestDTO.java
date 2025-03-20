@@ -12,5 +12,5 @@ import lombok.Setter;
 @Setter
 public class BudgetRequestDTO {
     private String name;
-    private boolean shared;
+    private boolean shared = false;
 }

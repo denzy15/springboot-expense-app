@@ -50,29 +50,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                 return;
 
-               /* logger.warn("Access token недействителен. Пробуем обновить...");
 
-                String refreshToken = getRefreshTokenFromCookies(request);
-                if (refreshToken != null) {
-                    String newAccessToken = jwtService.refreshAccessToken(refreshToken);
-
-                    if (newAccessToken != null) {
-                        logger.info("Access token успешно обновлен.");
-                        response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + newAccessToken);
-
-                        Claims claims = jwtService.parseToken(newAccessToken);
-                        authenticateUser(claims);
-                    } else {
-                        logger.error("Refresh token недействителен. Пользователь должен войти заново.");
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                        return;
-                    }
-                } else {
-                    logger.error("Refresh token отсутствует. Unauthorized.");
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                    return;
-                }
-            */
             }
         }
 

@@ -91,27 +91,6 @@ public class TransactionService {
             oldTransaction.setCategory(null);
         }
 
-//        if (!Objects.equals(transaction.getAccount().getId(), account.getId())) {
-//            Account prevAccount = accountRepository.findById(transaction.getAccount().getId()).orElse(null);
-//
-//            transaction.setAccount(account);
-//
-//            if (transactionRequest.getType() == OperationType.EXPENSE) {
-//                account.setBalance(account.getBalance().subtract(transactionRequest.getAmount()));
-//
-//                if (prevAccount != null)
-//                    prevAccount.setBalance(prevAccount.getBalance().add(transactionRequest.getAmount()));
-//
-//            } else {
-//                account.setBalance(account.getBalance().add(transactionRequest.getAmount()));
-//
-//                if (prevAccount != null)
-//                    prevAccount.setBalance(prevAccount.getBalance().subtract(transactionRequest.getAmount()));
-//            }
-//
-//            if (prevAccount != null) accountRepository.save(prevAccount);
-//        }
-
         if (transactionRequest.isAdjustBalance()) {
             adjustAccountBalances(oldTransaction, transactionRequest);
         }
@@ -121,7 +100,6 @@ public class TransactionService {
         oldTransaction.setDescription(transactionRequest.getDescription());
         oldTransaction.setCreatedAt(transactionRequest.getCreatedAt() != null ? transactionRequest.getCreatedAt() : oldTransaction.getCreatedAt());
 
-//        accountRepository.save(account);
         transactionRepository.save(oldTransaction);
 
         List<Transaction> recentTrans = this.getLast10Transactions(oldTransaction.getAccount().getBudget().getId());
@@ -170,7 +148,7 @@ public class TransactionService {
     }
 
     public Page<Transaction> getTransactionsByBudget(Long budgetId, UserPrincipal currentUser,  Pageable pageable) {
-        if (!budgetUtils.hasModifyAccess(budgetId, currentUser.getId())) {
+        if (!budgetUtils.hasAccessToBudget(budgetId, currentUser.getId())) {
             throw new AccessDeniedException("Недостаточно прав");
         }
 
@@ -178,7 +156,12 @@ public class TransactionService {
     }
 
 
-    public TransactionSummaryResponseDTO getTransactionSummary(Long budgetId, LocalDate startDate, LocalDate endDate) {
+    public TransactionSummaryResponseDTO getTransactionSummary(Long budgetId, LocalDate startDate, LocalDate endDate,  UserPrincipal currentUser) {
+
+        if (!budgetUtils.hasAccessToBudget(budgetId, currentUser.getId())) {
+            throw new AccessDeniedException("У вас нет доступа к данному бюджету");
+        }
+
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
@@ -197,8 +180,8 @@ public class TransactionService {
                 .map(category -> new CategorySummaryResponseDTO(category.getId(), category.getName(), OperationType.EXPENSE, BigDecimal.ZERO))
                 .collect(Collectors.toList());
 
-        incomes.add(new CategorySummaryResponseDTO(0L, "Другое", OperationType.INCOME, BigDecimal.ZERO));
-        expenses.add(new CategorySummaryResponseDTO(0L, "Другое", OperationType.EXPENSE, BigDecimal.ZERO));
+        incomes.add(new CategorySummaryResponseDTO(0L, "без категории", OperationType.INCOME, BigDecimal.ZERO));
+        expenses.add(new CategorySummaryResponseDTO(0L, "без категории", OperationType.EXPENSE, BigDecimal.ZERO));
 
         for (Transaction transaction : transactions) {
             OperationType operationType = transaction.getType();
@@ -220,26 +203,4 @@ public class TransactionService {
         return new TransactionSummaryResponseDTO(incomes, expenses);
     }
 
-//    public TransactionSummaryResponseDTO getTransactionSummary(Long budgetId, LocalDate startDate, LocalDate endDate) {
-//        List<Transaction> transactions = transactionRepository.findByBudgetAndDateRange(budgetId, startDate, endDate);
-//
-//        List<Map<CategorySummaryResponseDTO, BigDecimal>> expenseSummary = new ArrayList<>();
-//        List<Map<CategorySummaryResponseDTO, BigDecimal>> incomeSummary = new ArrayList<>();
-//
-//        for (Transaction transaction : transactions) {
-//            Category DBcategory = (transaction.getCategory() != null) ? transaction.getCategory() : new Category(0L, "Другое", null, transaction.getType());
-//
-//            CategorySummaryResponseDTO categoryDTO = new CategorySummaryResponseDTO(DBcategory.getId(), DBcategory.getName());
-//
-//            BigDecimal amount = transaction.getAmount();
-//
-//            if (transaction.getType() == OperationType.EXPENSE) {
-//                expenseSummary.put(categoryName, expenseSummary.getOrDefault(categoryName, BigDecimal.ZERO).add(amount));
-//            } else {
-//                incomeSummary.put(categoryName, incomeSummary.getOrDefault(categoryName, BigDecimal.ZERO).add(amount));
-//            }
-//        }
-//
-//        return new TransactionSummaryResponseDTO(incomeSummary, expenseSummary);
-//    }
 }

@@ -61,11 +61,11 @@ public class AccountController {
 
 
 
-    @DeleteMapping("/{accountId}")
-    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal UserPrincipal currentUser,
+    @PutMapping("/{accountId}/deactivate")
+    public ResponseEntity<?> softDeleteAccount(@AuthenticationPrincipal UserPrincipal currentUser,
                                            @PathVariable Long accountId) {
         UserReference userReference = new UserReference(currentUser.getId(), currentUser.getEmail(), currentUser.getUsername());
-        accountService.deleteAccount(accountId, userReference);
+        accountService.softDeleteAccount(accountId, userReference);
         return ResponseEntity.noContent().build();
 
     }

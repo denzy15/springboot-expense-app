@@ -57,12 +57,12 @@ public class BudgetUtils {
         return budgetMemberRepository.findByBudgetIdAndUserId(budgetId, activeUserId).isPresent();
     }
 
-    public boolean isAbleToKick(Long budgetId, Long activeUserId, BudgetMember member) {
+    public boolean isAbleToEditMember(Long budgetId, Long activeUserId, Long memberId, Role memberRole) {
         Budget budget = budgetRepository.findById(budgetId).orElseThrow(
                 () -> new EntityNotFoundException("Бюджет не найден")
         );
 
-        if (Objects.equals(activeUserId, member.getId())) return  false;
+        if (Objects.equals(activeUserId, memberId)) return  false;
 
         if (budget.getOwner().getId().equals(activeUserId)) return true;
 
@@ -70,7 +70,6 @@ public class BudgetUtils {
                 ()-> new EntityNotFoundException("Вы не являетесь участником бюджета")
         );
 
-        Role memberRole = member.getRole();
         Role activeUserRole = activeUser.getRole();
 
         if (activeUserRole.equals(Role.READ) || activeUserRole.equals(memberRole)) return false;

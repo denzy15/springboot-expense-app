@@ -24,7 +24,6 @@ import java.util.List;
 public class BudgetController {
     private final BudgetService budgetService;
     private final BudgetMemberService budgetMemberService;
-    private final TransactionService transactionService;
 
     @GetMapping
     public ResponseEntity<List<Budget>> getUserBudgets(@AuthenticationPrincipal UserPrincipal currentUser) {
@@ -96,7 +95,7 @@ public class BudgetController {
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody BudgetMemberDTO request) {
 
-        BudgetMember member = budgetMemberService.changeMemberRole(budgetId, request.getId(), request.getRole(), currentUser.getId());
+        BudgetMember member = budgetMemberService.changeMemberRole(budgetId, request, currentUser.getId());
 
         return ResponseEntity.ok(member);
     }
@@ -108,7 +107,7 @@ public class BudgetController {
             @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestBody BudgetMemberDTO request) {
 
-            budgetMemberService.kickMember(budgetId, request.getId(), currentUser.getId());
+            budgetMemberService.kickMember(budgetId, request.getUserId(), currentUser.getId());
             return ResponseEntity.noContent().build();
 
     }

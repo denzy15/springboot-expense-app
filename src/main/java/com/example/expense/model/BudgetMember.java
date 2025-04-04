@@ -1,5 +1,6 @@
 package com.example.expense.model;
 
+import com.example.expense.DTO.BudgetMemberDTO;
 import com.example.expense.enums.Role;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
@@ -39,5 +40,13 @@ public class BudgetMember {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    public BudgetMemberDTO toDTO() {
+        return new BudgetMemberDTO(
+                this.user.getId(),
+                this.user.getUsername(),
+                this.user.getEmail(),
+                this.role
+        );
+    }
 
 }

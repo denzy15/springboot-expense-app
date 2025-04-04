@@ -2,6 +2,7 @@ package com.example.expense.service;
 
 import com.example.expense.DTO.AccountBalanceTransferRequestDTO;
 import com.example.expense.DTO.AccountDTO;
+import com.example.expense.enums.Status;
 import com.example.expense.model.Account;
 import com.example.expense.model.Budget;
 import com.example.expense.model.UserReference;
@@ -51,12 +52,13 @@ public class AccountService {
 
     public Account updateAccount(Long accountId, AccountDTO accountRequest, UserReference currentUser) {
 
-        if (accountRepository.existsByBudgetIdAndName(accountRequest.getBudgetId(), accountRequest.getName())) {
-            throw new IllegalArgumentException("Счет с таким названием уже существует в этом бюджете.");
-        }
 
         Account account = accountRepository.findById(accountId).orElseThrow(
                 () -> new EntityNotFoundException("Счет не найден"));
+
+        if (accountRepository.existsByBudgetIdAndNameAndIdNot(accountRequest.getBudgetId(), accountRequest.getName(), accountId) ) {
+            throw new IllegalArgumentException("Счет с таким названием уже существует в этом бюджете.");
+        }
 
         if (
                 !budgetUtils.hasModifyAccess(accountRequest.getBudgetId(), currentUser.getId())
@@ -69,7 +71,7 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    public void deleteAccount(Long accountId, UserReference currentUser) {
+    public void softDeleteAccount(Long accountId, UserReference currentUser) {
 
         Account account = accountRepository.findById(accountId).orElseThrow(
                 () -> new EntityNotFoundException("Счет не найден")
@@ -85,18 +87,19 @@ public class AccountService {
             throw new IllegalStateException("Нельзя удалить счет с ненулевым балансом. Сначала переведите средства.");
         }
 
-        List<Account> accounts = accountRepository.findByBudgetId(account.getBudget().getId());
+        List<Account> accounts = accountRepository.findActiveAccountsByBudgetId(account.getBudget().getId());
 
         if (accounts.size() <= 1) {
             throw new IllegalStateException("Нельзя удалить последний счет в бюджете.");
         }
 
-        accountRepository.delete(account);
+        account.setStatus(Status.D);
+        accountRepository.save(account);
 
     }
 
     public List<Account> getAccountsByBudget(Long budgetId) {
-        return accountRepository.findByBudgetId(budgetId);
+        return accountRepository.findActiveAccountsByBudgetId(budgetId);
     }
 
     public List<Account> transferBalance(Long budgetId, AccountBalanceTransferRequestDTO request,  UserReference currentUser)  {
@@ -122,7 +125,7 @@ public class AccountService {
         accountRepository.save(accountFrom);
         accountRepository.save(accountTo);
 
-        return accountRepository.findByBudgetId(budgetId);
+        return accountRepository.findActiveAccountsByBudgetId(budgetId);
     }
 
 }

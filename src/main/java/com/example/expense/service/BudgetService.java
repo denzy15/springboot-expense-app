@@ -1,5 +1,6 @@
 package com.example.expense.service;
 
+import com.example.expense.DTO.BudgetMemberDTO;
 import com.example.expense.DTO.BudgetRequestDTO;
 import com.example.expense.DTO.BudgetResponseDTO;
 import com.example.expense.DTO.UserPrincipal;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -57,7 +59,7 @@ public class BudgetService {
                 () -> new EntityNotFoundException("Бюджет не найден")
         );
 
-        if (!budget.getOwner().getId().equals(currentUserId)) {
+        if (!budgetUtils.isUserBudgetOwner(budgetId, currentUserId)) {
             throw new AccessDeniedException("У вас нет прав для изменения данного бюджета.");
         }
 
@@ -87,13 +89,14 @@ public class BudgetService {
 
     }
 
+    @Transactional
     public void deleteBudget(Long budgetId, Long currentUserId) {
         Budget budget = budgetRepository.findById(budgetId).orElseThrow(
                 () -> new EntityNotFoundException("Бюджет не найден")
         );
 
         if (!budget.getOwner().getId().equals(currentUserId)) {
-            throw new AccessDeniedException("У вас нет прав для изменения данного бюджета.");
+            throw new AccessDeniedException("У вас нет прав для удаления данного бюджета.");
         }
 
         budgetRepository.delete(budget);
@@ -124,6 +127,9 @@ public class BudgetService {
 
         List<Transaction> recentTransactions = transactionService.getLast10Transactions(budgetId);
 
+        List<BudgetMemberDTO> members = budget.getMembers().stream()
+                .map(BudgetMember::toDTO)
+                .toList();
 
         return new BudgetResponseDTO(
                 budgetId,
@@ -132,7 +138,7 @@ public class BudgetService {
                 budget.isShared(),
                 budget.getAccounts(),
                 budget.getCategories(),
-                budget.getMembers(),
+                members,
                 recentTransactions
         );
 

@@ -38,10 +38,11 @@ public class TransactionController {
     @GetMapping("/summary")
     public ResponseEntity<TransactionSummaryResponseDTO> getTransactionSummary(
             @RequestParam Long budgetId,
+            @AuthenticationPrincipal UserPrincipal currentUser,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
-        TransactionSummaryResponseDTO summary = transactionService.getTransactionSummary(budgetId, startDate, endDate);
+        TransactionSummaryResponseDTO summary = transactionService.getTransactionSummary(budgetId, startDate, endDate, currentUser);
         return ResponseEntity.ok(summary);
     }
 

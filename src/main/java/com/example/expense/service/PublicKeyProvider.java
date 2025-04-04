@@ -57,11 +57,11 @@ public class PublicKeyProvider {
     /** Метод для получения ключа по URL */
     private PublicKey fetchPublicKey(String url) {
         try {
-            logger.info("Fetching public key from: {}", url);
+//            logger.info("Fetching public key from: {}", url);
             String keyPem = restTemplate.getForObject(url, String.class);
 
             if (keyPem == null || keyPem.isEmpty()) {
-                logger.warn("Received empty public key from {}", url);
+//                logger.warn("Received empty public key from {}", url);
                 return null;
             }
 
@@ -75,8 +75,6 @@ public class PublicKeyProvider {
     /** Преобразование PEM в PublicKey */
     private PublicKey convertPemToPublicKey(String pem) {
         try {
-            logger.info("Raw Public Key before processing:\n{}", pem);
-
             // Очистка от заголовков, переводов строк и пробелов
             String cleanedKey = pem
                     .replace("-----BEGIN PUBLIC KEY-----", "")
@@ -84,14 +82,14 @@ public class PublicKeyProvider {
                     .replaceAll("\\s+", "") // Удаляем все пробельные символы (включая \r, \n, \t, пробелы)
                     .replace("\"", ""); // Убираем кавычки, если они есть
 
-            logger.info("Cleaned Public Key:\n{}", cleanedKey);
+//            logger.info("Cleaned Public Key:\n{}", cleanedKey);
 
             byte[] keyBytes = Base64.getDecoder().decode(cleanedKey);
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             return keyFactory.generatePublic(keySpec);
         } catch (Exception e) {
-            logger.error("Invalid public key format: {}", e.getMessage());
+//            logger.error("Invalid public key format: {}", e.getMessage());
             return null;
         }
     }

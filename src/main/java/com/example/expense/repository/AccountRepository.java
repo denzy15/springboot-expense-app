@@ -12,6 +12,13 @@ import java.util.List;
 public interface AccountRepository extends JpaRepository<Account, Long> {
     boolean existsByBudgetIdAndName(Long budgetId, String name);
 
+    boolean existsByBudgetIdAndNameAndIdNot(Long budgetId, String name, Long id);
+
+
+    @Query("SELECT a FROM Account a WHERE a.budget.id = :budgetId AND a.status = 'A'")
+    List<Account> findActiveAccountsByBudgetId(@Param("budgetId") Long budgetId);
+
+    // Удалить? Возвращает и активные и удаленные записи
     List<Account> findByBudgetId(Long budgetId);
 
 //    @Query("SELECT a FROM Account a WHERE a.budget.id = :budgetId")

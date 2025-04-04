@@ -24,7 +24,7 @@ public class BudgetResponseDTO {
 
     private List<Category> categories;
 
-    private List<BudgetMember> members;
+    private List<BudgetMemberDTO> members;
 
     private List<Transaction> recentTransactions;
 }

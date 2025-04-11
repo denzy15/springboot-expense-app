@@ -1,5 +1,7 @@
 package com.example.expense.repository;
 
+import com.example.expense.DTO.MigrationTransDTO;
+import com.example.expense.DTO.MigrationTransProjection;
 import com.example.expense.model.Transaction;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,5 +30,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByBudgetAndDateRange(@Param("budgetId") Long budgetId,
                                                @Param("startDate") LocalDateTime startDate,
                                                @Param("endDate") LocalDateTime endDate);
+
+    @Query(value = "SELECT CAST(t.created_at AS DATE) AS trDate, " +
+            "c.budget_id AS budgetId, " +
+            "t.type AS trType, " +
+            "SUM(t.amount) AS totalAmount, " +
+            "COUNT(*) AS trCount, " +
+            "c.id AS categoryId " +
+            "FROM transactions t " +
+            "LEFT JOIN categories c ON c.id = t.category_id " +
+            "GROUP BY c.budget_id, CAST(t.created_at AS DATE), c.id, c.name, t.type " +
+            "ORDER BY budget_id, CAST(t.created_at AS DATE)", nativeQuery = true)
+    List<MigrationTransProjection> findMigrationTransactions();
 }
 

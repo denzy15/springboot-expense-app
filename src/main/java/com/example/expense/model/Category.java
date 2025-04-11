@@ -1,5 +1,7 @@
 package com.example.expense.model;
 
+import com.example.expense.DTO.MigrationCategoryDTO;
+import com.example.expense.DTO.MigrationTransDTO;
 import com.example.expense.enums.OperationType;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -36,5 +38,12 @@ public class Category {
     @Enumerated(EnumType.STRING)
     private OperationType categoryType; // EXPENSE или INCOME
 
+    public MigrationCategoryDTO convertToMigrationDTO() {
+        return new MigrationCategoryDTO(
+                this.id,
+                this.name,
+                this.categoryType
+        );
+    }
 
 }

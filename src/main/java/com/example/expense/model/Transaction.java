@@ -1,5 +1,6 @@
 package com.example.expense.model;
 
+import com.example.expense.DTO.MigrationTransDTO;
 import com.example.expense.enums.OperationType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,6 +42,17 @@ public class Transaction {
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now(); // Дата и время создания
+
+
+//    public MigrationTransDTO convertToMigrationDTO() {
+//        return new MigrationTransDTO(
+//                this.createdAt.toLocalDate(),
+//                this.account.getBudget().getId(),
+//                this.amount,
+//                this.type,
+//                this.category != null ? this.category.getId() : null
+//        );
+//    }
 }
 
 

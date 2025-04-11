@@ -1,6 +1,8 @@
 package com.example.expense.model;
 
 import com.example.expense.DTO.BudgetMemberDTO;
+import com.example.expense.DTO.MigrationBudgetAccessDTO;
+import com.example.expense.DTO.MigrationCategoryDTO;
 import com.example.expense.enums.Role;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
@@ -46,6 +48,13 @@ public class BudgetMember {
                 this.user.getUsername(),
                 this.user.getEmail(),
                 this.role
+        );
+    }
+
+    public MigrationBudgetAccessDTO convertToMigrationDTO() {
+        return new MigrationBudgetAccessDTO(
+                this.budget.getId(),
+                this.user.getId()
         );
     }
 

@@ -2,3 +2,4 @@
 2. BudgetService
         List<Budget> memberBudgets = budgetMemberRepository.findByBudgetId(userId)
         ЗАМЕНИТЬ userId на budgetId????
+3. Нельзя создать категорию с одинаковым name но с разными type

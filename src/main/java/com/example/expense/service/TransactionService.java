@@ -1,6 +1,7 @@
 package com.example.expense.service;
 
 import com.example.expense.DTO.*;
+import com.example.expense.DTO.kafka.TransactionEventDTO;
 import com.example.expense.enums.OperationType;
 import com.example.expense.model.Account;
 import com.example.expense.model.Category;
@@ -9,8 +10,11 @@ import com.example.expense.repository.AccountRepository;
 import com.example.expense.repository.CategoryRepository;
 import com.example.expense.repository.TransactionRepository;
 import com.example.expense.utils.BudgetUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,11 +30,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
+
+    private final KafkaProducerService kafkaProducerService;
+
 
     private final BudgetUtils budgetUtils;
 
@@ -71,6 +79,16 @@ public class TransactionService {
         transactionRepository.save(transaction);
 
         List<Transaction> recentTrans = this.getLast10Transactions(account.getBudget().getId());
+
+        try {
+            kafkaProducerService.sendTransactionCreateEvent(new TransactionEventDTO(
+                    null, transactionRequest.getAmount(),
+                    transactionRequest.getType(), account.getBudget().getId(), null,
+                    transactionRequest.getCategoryId(), transactionRequest.getCreatedAt()
+            ));
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
 
         return new TransactionResponseDTO(recentTrans, transaction);
     }
@@ -147,7 +165,7 @@ public class TransactionService {
         return this.getLast10Transactions(budgetId);
     }
 
-    public Page<Transaction> getTransactionsByBudget(Long budgetId, UserPrincipal currentUser,  Pageable pageable) {
+    public Page<Transaction> getTransactionsByBudget(Long budgetId, UserPrincipal currentUser, Pageable pageable) {
         if (!budgetUtils.hasAccessToBudget(budgetId, currentUser.getId())) {
             throw new AccessDeniedException("Недостаточно прав");
         }
@@ -156,7 +174,7 @@ public class TransactionService {
     }
 
 
-    public TransactionSummaryResponseDTO getTransactionSummary(Long budgetId, LocalDate startDate, LocalDate endDate,  UserPrincipal currentUser) {
+    public TransactionSummaryResponseDTO getTransactionSummary(Long budgetId, LocalDate startDate, LocalDate endDate, UserPrincipal currentUser) {
 
         if (!budgetUtils.hasAccessToBudget(budgetId, currentUser.getId())) {
             throw new AccessDeniedException("У вас нет доступа к данному бюджету");
